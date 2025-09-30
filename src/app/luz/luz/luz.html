@@ -1,0 +1,151 @@
+  <!-- Botón de regreso al menú -->
+<button class="back-menu-btn" (click)="goToMenu()">
+  ← Menú
+</button>
+
+  <video autoplay muted loop playsinline class="video-background">
+    <source src="assets/principal.mp4" type="video/mp4" />
+    Tu navegador no soporta video HTML5.
+  </video>
+<div class="luz-calculator-container">
+  <div class="calculator-card">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-icon">⚡</div>
+      <div></div>
+      <h1 class="header-title">Calculadora de Luz</h1>
+      <p class="header-subtitle">Divide tu factura de electricidad entre pisos</p>
+    </div>
+
+    <!-- Formulario -->
+    <form [formGroup]="calculatorForm" (ngSubmit)="onSubmit()" class="calculator-form">
+
+      <!-- Campo Monto Total -->
+      <div class="form-group">
+        <label for="totalAmount" class="form-label">
+          💰 Total de la Factura
+        </label>
+        <div class="input-container" [class.error]="hasError('totalAmount')">
+          <span class="currency-symbol">$</span>
+          <input
+            id="totalAmount"
+            type="number"
+            formControlName="totalAmount"
+            class="form-input"
+            placeholder="150000.00"
+            step="0.01"
+            min="0"
+          >
+        </div>
+        <div *ngIf="hasError('totalAmount')" class="error-message">
+          {{ getErrorMessage('totalAmount') }}
+        </div>
+      </div>
+
+      <!-- Campo Número de Pisos -->
+      <div class="form-group">
+        <label for="floors" class="form-label">
+          🏢 Número de Pisos
+        </label>
+        <div class="input-container" [class.error]="hasError('floors')">
+          <input
+            id="floors"
+            type="number"
+            formControlName="floors"
+            class="form-input"
+            placeholder="3"
+            min="1"
+            max="100"
+          >
+        </div>
+        <div *ngIf="hasError('floors')" class="error-message">
+          {{ getErrorMessage('floors') }}
+        </div>
+      </div>
+
+      <!-- Botones -->
+      <div class="button-group">
+        <button
+          type="submit"
+          class="calculate-btn"
+          [disabled]="isCalculating"
+          [class.loading]="isCalculating"
+        >
+          <span *ngIf="!isCalculating">Calcular División</span>
+          <span *ngIf="isCalculating" class="loading-content">
+            <span class="spinner"></span>
+            Calculando...
+          </span>
+        </button>
+
+        <button
+          *ngIf="showResults"
+          type="button"
+          class="reset-btn"
+          (click)="resetCalculator()"
+        >
+          🔄 Nueva Calculación
+        </button>
+      </div>
+    </form>
+
+    <!-- Resultados -->
+    <div
+      *ngIf="showResults && calculation"
+      class="results-container"
+    >
+      <div class="results-header">
+        <div class="results-title">📊 Desglose Detallado</div>
+        <div class="results-subtitle">Distribución equitativa por piso</div>
+      </div>
+
+      <!-- Resumen General -->
+      <div class="breakdown-summary">
+        <div class="breakdown-item">
+          <span class="breakdown-label">💵 Total de la Factura</span>
+          <span class="breakdown-value">{{ formatCurrency(calculation.totalAmount) }}</span>
+        </div>
+        <div class="breakdown-item">
+          <span class="breakdown-label">🏢 Número de Pisos</span>
+          <span class="breakdown-value">{{ calculation.floors }}</span>
+        </div>
+      </div>
+
+      <!-- Monto por Piso -->
+      <div class="amount-per-floor">
+        <div class="amount-display">
+          {{ formatCurrency(calculation.amountPerFloor) }}
+        </div>
+        <div class="amount-label">Por piso</div>
+
+        <!-- Lista de Pisos -->
+        <div class="floor-list">
+          <div
+            *ngFor="let floor of calculation.floorBreakdown; let i = index"
+            class="floor-item"
+            [style.animation-delay]="(i * 0.1) + 's'"
+          >
+            <span class="floor-label">
+              🏠 Piso {{ floor.floorNumber }}
+            </span>
+            <span class="floor-amount">
+              {{ formatCurrency(floor.amount) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información Adicional -->
+      <div class="additional-info">
+        <div class="info-card">
+          <div class="info-icon">💡</div>
+          <div class="info-content">
+            <strong>Distribución Equitativa:</strong>
+            Cada piso paga exactamente la misma cantidad,
+            garantizando una división justa de los costos.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

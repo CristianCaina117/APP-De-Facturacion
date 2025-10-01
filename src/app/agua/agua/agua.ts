@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray } from '@angular/forms';
 import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 
@@ -68,28 +69,29 @@ export class AguaComponent implements OnInit, OnDestroy {
   maxSteps = 3;
   private debounceTimeout: any;
 
-  constructor(private fb: FormBuilder) {
-    this.aguaForm = this.fb.group({
-      totalAmount: [
-        null,
-        [
-          Validators.required,
-          Validators.min(0.01),
-          this.currencyValidator
-        ]
-      ],
-      numberOfFloors: [
-        null,
-        [
-          Validators.required,
-          Validators.min(1),
-          Validators.max(20),
-          Validators.pattern(/^\d+$/)
-        ]
-      ],
-      floors: this.fb.array([])
-    });
-  }
+  constructor(private fb: FormBuilder, private router: Router) {
+  this.aguaForm = this.fb.group({
+    totalAmount: [
+      null,
+      [
+        Validators.required,
+        Validators.min(0.01),
+        this.currencyValidator
+      ]
+    ],
+    numberOfFloors: [
+      null,
+      [
+        Validators.required,
+        Validators.min(1),
+        Validators.max(20),
+        Validators.pattern(/^\d+$/)
+      ]
+    ],
+    floors: this.fb.array([])
+  });
+}
+
 
   ngOnInit(): void {
     this.setupFormSubscriptions();
@@ -297,6 +299,8 @@ export class AguaComponent implements OnInit, OnDestroy {
         floor.finalAmount = floor.baseAmount + redistributionPerFloor;
       }
     });
+
+
 
     // Crear objeto redistributionDetails con tipo correcto
     const redistributionDetails: RedistributionDetails = {
@@ -671,6 +675,11 @@ export class AguaComponent implements OnInit, OnDestroy {
       breakdown += ` | Redistribución: +${this.formatCurrency(floor.redistributedAmount)}`;
     }
 
+
     return breakdown;
+  }
+  // Navegar al menú principal
+  goToMenu(): void {
+    this.router.navigate(['/']); // '/' es la ruta de tu menú principal
   }
 }

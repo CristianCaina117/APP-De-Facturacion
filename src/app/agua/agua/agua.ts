@@ -70,27 +70,27 @@ export class AguaComponent implements OnInit, OnDestroy {
   private debounceTimeout: any;
 
   constructor(private fb: FormBuilder, private router: Router) {
-  this.aguaForm = this.fb.group({
-    totalAmount: [
-      null,
-      [
-        Validators.required,
-        Validators.min(0.01),
-        this.currencyValidator
-      ]
-    ],
-    numberOfFloors: [
-      null,
-      [
-        Validators.required,
-        Validators.min(1),
-        Validators.max(20),
-        Validators.pattern(/^\d+$/)
-      ]
-    ],
-    floors: this.fb.array([])
-  });
-}
+    this.aguaForm = this.fb.group({
+      totalAmount: [
+        null,
+        [
+          Validators.required,
+          Validators.min(0.01),
+          this.currencyValidator
+        ]
+      ],
+      numberOfFloors: [
+        null,
+        [
+          Validators.required,
+          Validators.min(1),
+          Validators.max(20),
+          Validators.pattern(/^\d+$/)
+        ]
+      ],
+      floors: this.fb.array([])
+    });
+  }
 
 
   ngOnInit(): void {

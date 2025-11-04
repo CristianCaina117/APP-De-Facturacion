@@ -1,11 +1,9 @@
 {
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
-  "newProjectRoot": "projects",
   "projects": {
     "Facturacion": {
       "projectType": "application",
-      "schematics": {},
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
@@ -16,9 +14,7 @@
             "outputPath": "docs",
             "index": "src/index.html",
             "main": "src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
+            "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "assets": [
               "src/assets",
@@ -35,42 +31,45 @@
             ]
           },
           "configurations": {
-          "production": {
-            "optimization": true,
-            "outputHashing": "all",
-            "sourceMap": false,
-            "namedChunks": false,
-            "budgets": [
-              {
-                "type": "initial",
-                "maximumWarning": "2mb",
-                "maximumError": "5mb"
-              },
-              {
-                "type": "anyComponentStyle",
-                "maximumWarning": "20kb",
-                "maximumError": "30kb"
-              }
-            ],
-            "baseHref": "/APP-De-Facturacion/"
+            "production": {
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": false,
+              "namedChunks": false,
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2mb",
+                  "maximumError": "5mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "20kb",
+                  "maximumError": "30kb"
+                }
+              ],
+              "baseHref": "/APP-De-Facturacion/"
+            },
+            "development": {
+              "optimization": false,
+              "sourceMap": true,
+              "namedChunks": true,
+              "baseHref": "/"
+            }
           },
-          "development": {
-            "optimization": false,
-            "sourceMap": true,
-            "namedChunks": true,
-            "baseHref": "/APP-De-Facturacion/"
-          }
-        },
-          "defaultConfiguration": "production"
+          "defaultConfiguration": "development"
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "buildTarget": "Facturacion:build:development"
+          },
           "configurations": {
             "production": {
-              "browserTarget": "Facturacion:build:production"
+              "buildTarget": "Facturacion:build:production"
             },
             "development": {
-              "browserTarget": "Facturacion:build:development"
+              "buildTarget": "Facturacion:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -81,10 +80,7 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "polyfills": [
-              "zone.js",
-              "zone.js/testing"
-            ],
+            "polyfills": ["zone.js", "zone.js/testing"],
             "tsConfig": "tsconfig.spec.json",
             "assets": [
               {
@@ -93,9 +89,7 @@
                 "output": "/"
               }
             ],
-            "styles": [
-              "src/styles.css"
-            ]
+            "styles": ["src/styles.css"]
           }
         }
       }

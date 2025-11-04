@@ -6,6 +6,11 @@
 /out-tsc
 /bazel-out
 
+# ⚠️ No ignores la carpeta de builds para GitHub Pages
+# (Angular se exporta en /docs para GitHub Pages)
+#!docs/
+!docs/**
+
 # Node
 /node_modules
 npm-debug.log
@@ -40,3 +45,7 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Forzar inclusión de carpeta docs para GitHub Pages
+!docs/
+!docs/**

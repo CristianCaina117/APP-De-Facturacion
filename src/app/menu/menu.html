@@ -1,0 +1,82 @@
+  <div class="shell">
+
+    <!-- Video de fondo -->
+    <div class="vid-wrap">
+      <video autoplay muted loop playsinline>
+        <source src="assets/principal.mp4" type="video/mp4" />
+      </video>
+    </div>
+    <div class="overlay"></div>
+
+    <!-- Contenido -->
+    <div class="content">
+      <p class="eyebrow">Panel de control</p>
+      <h1>Servicios<br><em>por Piso</em></h1>
+      <p class="subtitle">Monitoreo de consumo en tiempo real</p>
+
+      <div class="cards">
+
+        <a class="card" routerLink="/luz">
+          <div class="card-num">01</div>
+          <div class="card-shine"></div>
+          <div class="icon-wrap"><i class="ti ti-bolt"></i></div>
+          <p class="card-tag">Servicio</p>
+          <h2>Luz</h2>
+          <p class="card-desc">Consumo actual y total acumulado</p>
+          <div class="card-footer">
+            <span class="card-link">Ver detalles</span>
+            <i class="ti ti-arrow-up-right card-arr"></i>
+          </div>
+          <div class="card-bar"></div>
+        </a>
+
+        <a class="card" routerLink="/agua">
+          <div class="card-num">02</div>
+          <div class="card-shine"></div>
+          <div class="icon-wrap"><i class="ti ti-droplet"></i></div>
+          <p class="card-tag">Servicio</p>
+          <h2>Agua</h2>
+          <p class="card-desc">Consumo actual y total acumulado</p>
+          <div class="card-footer">
+            <span class="card-link">Ver detalles</span>
+            <i class="ti ti-arrow-up-right card-arr"></i>
+          </div>
+          <div class="card-bar"></div>
+        </a>
+
+        <a class="card" routerLink="/gas1y2">
+          <div class="card-num">03</div>
+          <div class="card-shine"></div>
+          <div class="icon-wrap"><i class="ti ti-flame"></i></div>
+          <p class="card-tag">Gas — Pisos 1 &amp; 2</p>
+          <h2>Gas P1–P2</h2>
+          <p class="card-desc">Consumo mensual detallado</p>
+          <div class="card-footer">
+            <span class="card-link">Ver detalles</span>
+            <i class="ti ti-arrow-up-right card-arr"></i>
+          </div>
+          <div class="card-bar"></div>
+        </a>
+
+        <a class="card" routerLink="/gas3y4">
+          <div class="card-num">04</div>
+          <div class="card-shine"></div>
+          <div class="icon-wrap"><i class="ti ti-flame"></i></div>
+          <p class="card-tag">Gas — Pisos 3 &amp; 4</p>
+          <h2>Gas P3–P4</h2>
+          <p class="card-desc">Consumo mensual detallado</p>
+          <div class="card-footer">
+            <span class="card-link">Ver detalles</span>
+            <i class="ti ti-arrow-up-right card-arr"></i>
+          </div>
+          <div class="card-bar"></div>
+        </a>
+
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-dot"><span class="dot"></span> Sistema activo</div>
+      <span class="status-right">4 servicios</span>
+    </div>
+  </div>

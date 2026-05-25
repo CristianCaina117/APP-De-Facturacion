@@ -1,21 +1,18 @@
 import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Router, RouterOutlet, RouterModule } from '@angular/router';
-import { NgIf } from '@angular/common'; // ✅ Import necesario
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterModule, NgIf], // ✅ Agregar NgIf aquí
+  imports: [CommonModule, RouterOutlet, RouterModule],
   templateUrl: './app.html',
   styleUrls: ['./app.css']
 })
 export class App {
   protected readonly title = signal('Facturacion');
 
-  constructor(private router: Router) {}
+  showMenu = true;
 
-  showMenu(): boolean {
-    const menuRoutes = ['/', '/menu'];
-    return menuRoutes.includes(this.router.url);
-  }
+  constructor(private router: Router) {}
 }

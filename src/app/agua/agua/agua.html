@@ -1,456 +1,252 @@
-<video autoplay muted loop playsinline class="video-background">
-  <source src="assets/principal.mp4" type="video/mp4" />
-  Tu navegador no soporta video HTML5.
-</video>
+<div class="shell">
+  <div class="vid-wrap">
+    <video autoplay muted loop playsinline>
+      <source src="assets/Agua.mp4" type="video/mp4" />
+    </video>
+  </div>
+  <div class="overlay"></div>
 
-<!-- Botón de regreso al menú -->
-<button class="back-menu-btn" (click)="goToMenu()">
-  ← Menú
-</button>
+  <button class="back-btn" type="button" (click)="goToMenu()">
+    <i class="ti ti-arrow-left"></i> Menú
+  </button>
 
+  <div class="content">
+    <p class="page-eyebrow">Servicios</p>
+    <h1 class="page-title">Calculadora<br><em>de Agua</em></h1>
+    <p class="page-sub">Distribución proporcional con redistribución automática</p>
 
-<div class="agua-calculator-container">
-  <div class="calculator-card">
-    <!-- Progress Bar -->
-    <div class="progress-container">
-      <div class="progress-bar">
-        <div class="progress-fill" [style.width.%]="getProgressPercentage()"></div>
+    <!-- Progress steps -->
+    <div class="steps-row">
+      <div class="step-item" [class.active]="currentStep >= 1" [class.done]="currentStep > 1">
+        <div class="step-circle">
+          <i class="ti ti-check" *ngIf="currentStep > 1"></i>
+          <span *ngIf="currentStep <= 1">1</span>
+        </div>
+        <span class="step-lbl">Datos</span>
       </div>
-      <div class="progress-steps">
-        <div class="step" [class.active]="currentStep >= 1" [class.completed]="currentStep > 1">
-          <span class="step-number">1</span>
-          <span class="step-label">Datos Básicos</span>
+      <div class="step-line" [class.filled]="currentStep > 1"></div>
+      <div class="step-item" [class.active]="currentStep >= 2" [class.done]="currentStep > 2">
+        <div class="step-circle">
+          <i class="ti ti-check" *ngIf="currentStep > 2"></i>
+          <span *ngIf="currentStep <= 2">2</span>
         </div>
-        <div class="step" [class.active]="currentStep >= 2" [class.completed]="currentStep > 2">
-          <span class="step-number">2</span>
-          <span class="step-label">Personas por Piso</span>
-        </div>
-        <div class="step" [class.active]="currentStep >= 3">
-          <span class="step-number">3</span>
-          <span class="step-label">Resultados</span>
-        </div>
+        <span class="step-lbl">Pisos</span>
+      </div>
+      <div class="step-line" [class.filled]="currentStep > 2"></div>
+      <div class="step-item" [class.active]="currentStep >= 3">
+        <div class="step-circle">3</div>
+        <span class="step-lbl">Resultados</span>
       </div>
     </div>
 
-    <!-- Header -->
-    <div class="header">
-      <div class="header-icon">💧</div>
-      <h1 class="header-title">Calculadora de Agua</h1>
-      <p class="header-subtitle">Distribución proporcional con redistribución automática de ajustes</p>
-    </div>
+    <div class="card">
 
-    <!-- Step 1: Datos Básicos -->
-    <div *ngIf="currentStep === 1" class="step-content fade-in">
-      <div class="step-header">
-        <h2 class="step-title">📋 Información General</h2>
-        <p class="step-description">Ingresa el monto total de la factura y el número de pisos del edificio</p>
-      </div>
-
-      <form [formGroup]="aguaForm" class="agua-form">
-        <!-- Monto Total -->
-        <div class="form-group">
-          <label for="totalAmount" class="form-label">
-            💰 Total de la Factura de Agua
-          </label>
-          <div class="input-wrapper" [class.error]="hasError('totalAmount')">
-            <span class="input-icon">$</span>
-            <input
-              id="totalAmount"
-              type="number"
-              formControlName="totalAmount"
-              class="form-input"
-              placeholder="Ej: 250,000"
-              step="0.01"
-              min="0"
-              (blur)="onFieldChange('totalAmount')"
-              (input)="onFieldChange('totalAmount')"
-            />
-          </div>
-          <div *ngIf="hasError('totalAmount')" class="error-message">
-            <span class="error-icon">⚠️</span>
-            {{ getErrorMessage('totalAmount') }}
-          </div>
-          <div class="field-hint">
-            <span class="hint-icon">💡</span>
-            Ingresa el valor total sin comas ni puntos adicionales
-          </div>
+      <!-- STEP 1 -->
+      <div *ngIf="currentStep === 1" class="step-body">
+        <div class="step-head">
+          <div class="step-icon"><i class="ti ti-droplet"></i></div>
+          <h2>Información general</h2>
+          <p>Ingresa el monto total y el número de pisos</p>
         </div>
-
-        <!-- Número de Pisos -->
-        <div class="form-group">
-          <label for="numberOfFloors" class="form-label">
-            🏢 Número de Pisos
-          </label>
-          <div class="input-wrapper" [class.error]="hasError('numberOfFloors')">
-            <input
-              id="numberOfFloors"
-              type="number"
-              formControlName="numberOfFloors"
-              class="form-input"
-              placeholder="Ej: 4"
-              min="1"
-              max="20"
-              (blur)="onFieldChange('numberOfFloors')"
-              (input)="onFieldChange('numberOfFloors')"
-            />
-          </div>
-          <div *ngIf="hasError('numberOfFloors')" class="error-message">
-            <span class="error-icon">⚠️</span>
-            {{ getErrorMessage('numberOfFloors') }}
-          </div>
-          <div class="field-hint">
-            <span class="hint-icon">💡</span>
-            Máximo 20 pisos permitidos
-          </div>
-        </div>
-
-        <!-- Botón -->
-        <div class="form-actions">
-          <button
-            type="button"
-            class="btn-primary"
-            [disabled]="!isStep1Valid()"
-            (click)="onNextStep()"
-          >
-            <span class="btn-icon">👥</span>
-            Continuar a Pisos
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Step 2: Personas por Piso -->
-    <div *ngIf="currentStep === 2" class="step-content">
-      <div class="step-header">
-        <h2 class="step-title">👥 Personas por Piso</h2>
-        <p class="step-description">Ingresa la cantidad de personas y ajustes por consumo para cada piso</p>
-        <div class="suggestion-card">
-          <div class="suggestion-content">
-            ℹ️ Los ajustes negativos se redistribuirán automáticamente entre los demás pisos
-          </div>
-        </div>
-      </div>
-
-      <form [formGroup]="aguaForm" class="agua-form">
-        <div class="floors-container">
-          <div
-            *ngFor="let floorControl of floorFormGroups; let i = index"
-            [formGroup]="floorControl"
-            class="floor-card"
-            [attr.data-floor]="i + 1"
-          >
-            <div class="floor-header">
-              <div class="floor-title">
-                <span class="floor-icon">🏠</span>
-                Piso {{ floorControl.get('floorNumber')?.value }}
-              </div>
-              <div class="floor-status" [class.valid]="!hasError('people', i) && floorControl.get('people')?.value > 0">
-                <span *ngIf="!hasError('people', i) && floorControl.get('people')?.value > 0">✅</span>
-                <span *ngIf="hasError('people', i)">❌</span>
-              </div>
+        <form [formGroup]="aguaForm">
+          <div class="form-group">
+            <label class="form-label">
+              <i class="ti ti-cash"></i> Total de la factura
+            </label>
+            <div class="input-wrap" [class.err]="hasError('totalAmount')">
+              <span class="input-prefix">$</span>
+              <input type="number" formControlName="totalAmount" class="form-input"
+                placeholder="250,000" step="0.01" min="0"
+                (blur)="onFieldChange('totalAmount')" />
             </div>
-
-            <div class="floor-content">
-              <!-- Número de Personas -->
-              <div class="form-group">
-                <label class="form-label">
-                  👤 Cantidad de Personas
-                </label>
-                <div class="input-container" [class.error]="hasError('people', i)" [class.success]="!hasError('people', i) && floorControl.get('people')?.value > 0">
-                  <input
-                    type="number"
-                    formControlName="people"
-                    class="form-input small"
-                    placeholder="2"
-                    min="1"
-                    max="20"
-                    (blur)="onFieldChange('people', i)"
-                    (input)="onFieldChange('people', i)"
-                  >
-                </div>
-                <div *ngIf="hasError('people', i)" class="error-message">
-                  <span class="error-icon">⚠️</span>
-                  {{ getErrorMessage('people', i) }}
-                </div>
-              </div>
-
-              <!-- Ajuste Manual -->
-              <div class="form-group">
-                <label class="form-label">
-                  ⚖️ Ajuste Manual
-                  <span class="label-help">(+ aumentar / - reducir)</span>
-                </label>
-                <div class="input-container" [class.error]="hasError('adjustment', i)">
-                  <span class="currency-symbol">$</span>
-                  <input
-                    type="number"
-                    formControlName="adjustment"
-                    class="form-input small"
-                    placeholder="0"
-                    step="0.01"
-                    (blur)="onFieldChange('adjustment', i)"
-                    (input)="onFieldChange('adjustment', i)"
-                  >
-                </div>
-                <div *ngIf="hasError('adjustment', i)" class="error-message">
-                  <span class="error-icon">⚠️</span>
-                  {{ getErrorMessage('adjustment', i) }}
-                </div>
-                <div *ngIf="floorControl.get('adjustment')?.value < 0" class="field-hint">
-                  <span class="hint-icon">🔄</span>
-                  Esta reducción se redistribuirá automáticamente
-                </div>
-              </div>
-
-              <!-- Razón del Ajuste -->
-              <div class="form-group">
-                <label class="form-label">
-                  📝 Motivo del Ajuste (Opcional)
-                </label>
-                <input
-                  type="text"
-                  formControlName="adjustmentReason"
-                  class="form-input"
-                  placeholder="Ej: Mayor consumo por jardín"
-                  maxlength="100"
-                  (blur)="onFieldChange('adjustmentReason', i)"
-                >
-                <div class="field-hint">
-                  <span class="hint-icon">💡</span>
-                  Ayuda a recordar por qué se aplicó este ajuste
-                </div>
-                <div *ngIf="hasError('adjustmentReason', i)" class="error-message">
-                  <span class="error-icon">⚠️</span>
-                  {{ getErrorMessage('adjustmentReason', i) }}
-                </div>
-              </div>
+            <span class="err-msg" *ngIf="hasError('totalAmount')">{{ getErrorMessage('totalAmount') }}</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              <i class="ti ti-building"></i> Número de pisos
+            </label>
+            <div class="input-wrap" [class.err]="hasError('numberOfFloors')">
+              <input type="number" formControlName="numberOfFloors" class="form-input"
+                placeholder="4" min="1" max="20"
+                (blur)="onFieldChange('numberOfFloors')" />
             </div>
+            <span class="err-msg" *ngIf="hasError('numberOfFloors')">{{ getErrorMessage('numberOfFloors') }}</span>
           </div>
-        </div>
-
-        <div class="button-group">
-          <button
-            type="button"
-            class="prev-btn"
-            (click)="onPreviousStep()"
-          >
-            <span class="btn-icon">←</span>
-            Anterior
-          </button>
-          <button
-            type="button"
-            class="calculate-btn"
-            [disabled]="!isStep2Valid() || isCalculating"
-            [class.loading]="isCalculating"
-            (click)="onNextStep()"
-          >
-            <span *ngIf="!isCalculating" class="btn-content">
-              <span class="btn-icon">🧮</span>
-              Calcular con Redistribución
-            </span>
-            <span *ngIf="isCalculating" class="loading-content">
-              <span class="spinner"></span>
-              Calculando...
-            </span>
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Step 3: Resultados -->
-    <div *ngIf="currentStep === 3 && calculation" class="step-content">
-      <div class="step-header">
-        <h2 class="step-title">📊 Distribución de Agua</h2>
-        <p class="step-description">Desglose detallado con redistribución automática</p>
+          <div class="btn-row">
+            <button type="button" class="btn-primary" [disabled]="!isStep1Valid()" (click)="onNextStep()">
+              <i class="ti ti-users"></i> Continuar a pisos
+            </button>
+          </div>
+        </form>
       </div>
 
-      <!-- Resumen General -->
-      <div class="summary-cards">
-        <div class="summary-card primary">
-          <div class="summary-icon">💰</div>
-          <div class="summary-content">
-            <div class="summary-value">{{ formatCurrency(calculation.totalAmount) }}</div>
-            <div class="summary-label">Total Factura</div>
-          </div>
+      <!-- STEP 2 -->
+      <div *ngIf="currentStep === 2" class="step-body">
+        <div class="step-head">
+          <div class="step-icon"><i class="ti ti-users"></i></div>
+          <h2>Personas por piso</h2>
+          <p>Ingresa personas y ajustes opcionales por piso</p>
         </div>
-
-        <div class="summary-card secondary">
-          <div class="summary-icon">👥</div>
-          <div class="summary-content">
-            <div class="summary-value">{{ calculation.totalPeople }}</div>
-            <div class="summary-label">Total Personas</div>
-          </div>
-        </div>
-
-        <div class="summary-card accent">
-          <div class="summary-icon">💧</div>
-          <div class="summary-content">
-            <div class="summary-value">{{ formatCurrency(calculation.baseAmountPerPerson) }}</div>
-            <div class="summary-label">Por Persona</div>
-          </div>
-        </div>
-
-        <div *ngIf="calculation.redistributionDetails && calculation.redistributionDetails.totalRedistributed > 0" class="summary-card accent">
-          <div class="summary-icon">🔄</div>
-          <div class="summary-content">
-            <div class="summary-value">{{ formatCurrency(calculation.redistributionDetails.totalRedistributed) }}</div>
-            <div class="summary-label">Redistribuido</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Información de Redistribución -->
-      <div *ngIf="calculation.redistributionDetails && calculation.redistributionDetails.totalRedistributed > 0" class="suggestion-card">
-        <div class="suggestion-content">
-          🔄 <strong>Redistribución Automática:</strong> {{ getRedistributionInfo() }}
-        </div>
-      </div>
-
-      <!-- Sugerencia de Balance -->
-      <div class="suggestion-card">
-        <div class="suggestion-content">
-          {{ getSuggestion() }}
-        </div>
-      </div>
-
-      <!-- Desglose por Piso -->
-      <div class="floors-breakdown">
-        <h3 class="breakdown-title">🏢 Desglose por Piso</h3>
-
-        <div class="floors-results">
-          <div
-            *ngFor="let floor of calculation.floors; let i = index"
-            class="floor-result-card"
-            [style.animation-delay]="(i * 0.1) + 's'"
-          >
-            <div class="floor-result-header">
-              <div class="floor-info">
-                <span class="floor-number">
-                  <span class="floor-emoji">🏠</span>
-                  Piso {{ floor.floorNumber }}
+        <form [formGroup]="aguaForm">
+          <div class="floors-grid">
+            <div class="floor-card"
+              *ngFor="let floorControl of floorFormGroups; let i = index"
+              [formGroup]="floorControl">
+              <div class="floor-card-head">
+                <span class="floor-num-badge">{{ i + 1 }}</span>
+                <span class="floor-card-title">
+                  <i class="ti ti-home"></i> Piso {{ floorControl.get('floorNumber')?.value }}
                 </span>
-                <span class="people-count">{{ floor.people }} persona{{ floor.people !== 1 ? 's' : '' }}</span>
-                <div style="display: flex; gap: 8px; margin-top: 4px;">
-                  <span *ngIf="floor.adjustment < 0" style="background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;">Reducción</span>
-                  <span *ngIf="floor.redistributedAmount && floor.redistributedAmount > 0" style="background: #e8f5e8; color: #2e7d32; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;">+Redistribución</span>
+                <i class="ti ti-check floor-ok" *ngIf="!hasError('people', i) && floorControl.get('people')?.value > 0"></i>
+              </div>
+              <div class="floor-fields">
+                <div class="form-group">
+                  <label class="form-label"><i class="ti ti-user"></i> Personas</label>
+                  <div class="input-wrap" [class.err]="hasError('people', i)">
+                    <input type="number" formControlName="people" class="form-input"
+                      placeholder="2" min="1" max="20"
+                      (blur)="onFieldChange('people', i)" />
+                  </div>
+                  <span class="err-msg" *ngIf="hasError('people', i)">{{ getErrorMessage('people', i) }}</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label"><i class="ti ti-adjustments"></i> Ajuste <span class="label-hint">(+/-)</span></label>
+                  <div class="input-wrap">
+                    <span class="input-prefix">$</span>
+                    <input type="number" formControlName="adjustment" class="form-input"
+                      placeholder="0" step="0.01"
+                      (blur)="onFieldChange('adjustment', i)" />
+                  </div>
+                </div>
+                <div class="form-group full-col">
+                  <label class="form-label"><i class="ti ti-notes"></i> Motivo <span class="label-hint">(opcional)</span></label>
+                  <div class="input-wrap">
+                    <input type="text" formControlName="adjustmentReason" class="form-input"
+                      placeholder="Ej: mayor consumo por jardín" maxlength="100" />
+                  </div>
                 </div>
               </div>
-              <div class="floor-total">{{ formatCurrency(floor.finalAmount) }}</div>
             </div>
+          </div>
+          <div class="btn-row two">
+            <button type="button" class="btn-back" (click)="onPreviousStep()">
+              <i class="ti ti-arrow-left"></i> Anterior
+            </button>
+            <button type="button" class="btn-primary" [disabled]="!isStep2Valid() || isCalculating" (click)="onNextStep()">
+              <span *ngIf="!isCalculating"><i class="ti ti-calculator"></i> Calcular</span>
+              <span *ngIf="isCalculating"><i class="ti ti-loader-2 spin"></i> Calculando...</span>
+            </button>
+          </div>
+        </form>
+      </div>
 
-            <div class="floor-breakdown">
-              <div class="breakdown-row">
-                <span class="breakdown-label">Base ({{ floor.people }} × {{ formatCurrency(calculation.baseAmountPerPerson) }}):</span>
-                <span class="breakdown-value">{{ formatCurrency(floor.baseAmount) }}</span>
+      <!-- STEP 3 -->
+      <div *ngIf="currentStep === 3 && calculation" class="step-body">
+        <div class="step-head">
+          <div class="step-icon"><i class="ti ti-chart-bar"></i></div>
+          <h2>Distribución de agua</h2>
+          <p>Desglose detallado con redistribución automática</p>
+        </div>
+
+        <!-- Resumen top -->
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="s-label">Total factura</div>
+            <div class="s-val">{{ formatCurrency(calculation.totalAmount) }}</div>
+          </div>
+          <div class="summary-item">
+            <div class="s-label">Total personas</div>
+            <div class="s-val">{{ calculation.totalPeople }}</div>
+          </div>
+          <div class="summary-item">
+            <div class="s-label">Por persona</div>
+            <div class="s-val">{{ formatCurrency(calculation.baseAmountPerPerson) }}</div>
+          </div>
+        <div class="summary-item accent" *ngIf="(calculation.redistributionDetails?.totalRedistributed ?? 0) > 0">
+            <div class="s-label">Redistribuido</div>
+            <div class="s-val">{{ formatCurrency(calculation.redistributionDetails!.totalRedistributed) }}</div>
+          </div>
+        </div>
+
+        <!-- Info redistribución -->
+        <div class="info-strip" *ngIf="(calculation.redistributionDetails?.totalRedistributed ?? 0) > 0">
+          <i class="ti ti-refresh"></i>
+          <span>{{ getRedistributionInfo() }}</span>
+        </div>
+
+        <!-- Pisos -->
+        <div class="results-title">
+          <i class="ti ti-building"></i> Desglose por piso
+        </div>
+        <div class="floor-results">
+          <div class="floor-result" *ngFor="let floor of calculation.floors; let i = index"
+            [style.animation-delay]="(i * 0.08) + 's'">
+            <div class="fr-header">
+              <div class="fr-left">
+                <span class="fr-num">{{ floor.floorNumber }}</span>
+                <div>
+                  <div class="fr-title"><i class="ti ti-home"></i> Piso {{ floor.floorNumber }}</div>
+                  <div class="fr-people">{{ floor.people }} persona{{ floor.people !== 1 ? 's' : '' }}</div>
+                  <div class="fr-badges">
+                    <span class="badge-red" *ngIf="floor.adjustment < 0">Reducción</span>
+                    <span class="badge-green" *ngIf="(floor.redistributedAmount || 0) > 0">+Redistribución</span>
+                  </div>
+                </div>
               </div>
-
-              <div *ngIf="floor.adjustment !== 0" class="breakdown-row adjustment">
-                <span class="breakdown-label">
-                  <span class="adjustment-type">{{ floor.adjustment > 0 ? 'Ajuste (+)' : 'Reducción (-)' }}:</span>
-                  <small *ngIf="floor.adjustmentReason" class="adjustment-reason">{{ floor.adjustmentReason }}</small>
+              <div class="fr-total">{{ formatCurrency(floor.finalAmount) }}</div>
+            </div>
+            <div class="fr-breakdown">
+              <div class="fr-row">
+                <span>Base ({{ floor.people }} × {{ formatCurrency(calculation.baseAmountPerPerson) }})</span>
+                <span>{{ formatCurrency(floor.baseAmount) }}</span>
+              </div>
+              <div class="fr-row adj" *ngIf="floor.adjustment !== 0">
+                <span>
+                  {{ floor.adjustment > 0 ? 'Ajuste (+)' : 'Reducción (-)' }}
+                  <em *ngIf="floor.adjustmentReason">— {{ floor.adjustmentReason }}</em>
                 </span>
-                <span class="breakdown-value" [class.positive]="floor.adjustment > 0" [class.negative]="floor.adjustment < 0">
+                <span [class.pos]="floor.adjustment > 0" [class.neg]="floor.adjustment < 0">
                   {{ formatCurrency(floor.adjustment) }}
                 </span>
               </div>
-
-              <div *ngIf="floor.redistributedAmount && floor.redistributedAmount > 0" class="breakdown-row" style="background: #e8f5e8; border-radius: 6px; padding: 8px; margin: 4px 0;">
-                <span class="breakdown-label" style="color: #2e7d32; font-weight: 500;">
-                  Redistribución recibida:
-                </span>
-                <span class="breakdown-value" style="color: #2e7d32 !important; font-weight: 600;">
-                  +{{ formatCurrency(floor.redistributedAmount) }}
-                </span>
+              <div class="fr-row redis" *ngIf="(floor.redistributedAmount || 0) > 0">
+                <span>Redistribución recibida</span>
+                <span>+{{ formatCurrency(floor.redistributedAmount!) }}</span>
               </div>
-
-              <div class="breakdown-row total">
-                <span class="breakdown-label"><strong>Total a pagar:</strong></span>
-                <span class="breakdown-value"><strong>{{ formatCurrency(floor.finalAmount) }}</strong></span>
-              </div>
-
-              <!-- Desglose detallado -->
-              <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #6c757d;">
-                <small style="color: #6c757d; font-size: 12px; line-height: 1.4;">{{ getFloorBreakdown(floor) }}</small>
+              <div class="fr-row total-row">
+                <span>Total a pagar</span>
+                <span>{{ formatCurrency(floor.finalAmount) }}</span>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Total Final -->
-      <div class="final-total">
-        <div class="total-display">
-          <div class="total-amount">{{ formatCurrency(calculation.finalTotal) }}</div>
-          <div class="total-label">Total Final (Igual al inicial)</div>
-          <div *ngIf="calculation.totalAdjustments !== 0" class="total-adjustments">
-            (Incluye {{ formatCurrency(calculation.totalAdjustments) }} en ajustes)
-          </div>
-          <div *ngIf="calculation.redistributionDetails && calculation.redistributionDetails.totalRedistributed > 0" style="font-size: 12px; color: rgba(255,255,255,0.8); font-style: italic; margin-top: 4px;">
-            Con {{ formatCurrency(calculation.redistributionDetails.totalRedistributed) }} redistribuidos automáticamente
+        <!-- Total final -->
+        <div class="final-box">
+          <div class="final-num">{{ formatCurrency(calculation.finalTotal) }}</div>
+          <div class="final-lbl">Total final distribuido</div>
+          <div class="balance-check" [class.ok]="Math.abs(getTotalDifference()) <= 0.01">
+            <i class="ti ti-check" *ngIf="Math.abs(getTotalDifference()) <= 0.01"></i>
+            <i class="ti ti-alert-triangle" *ngIf="Math.abs(getTotalDifference()) > 0.01"></i>
+            <span *ngIf="Math.abs(getTotalDifference()) <= 0.01">Balance perfecto</span>
+            <span *ngIf="Math.abs(getTotalDifference()) > 0.01">Diferencia: {{ formatCurrency(Math.abs(getTotalDifference())) }}</span>
           </div>
         </div>
 
-        <!-- Verificación de balance -->
-        <div style="margin-top: 12px; text-align: center;">
-          <span *ngIf="Math.abs(getTotalDifference()) <= 0.01" style="color: rgba(255,255,255,0.9); font-weight: 500;">
-            ✅ Balance perfecto: {{ formatCurrency(calculation.totalAmount) }} = {{ formatCurrency(calculation.finalTotal) }}
-          </span>
-          <span *ngIf="Math.abs(getTotalDifference()) > 0.01" style="color: rgba(255,255,255,0.9); font-weight: 500;">
-            ⚠️ Diferencia mínima: {{ formatCurrency(Math.abs(getTotalDifference())) }} (redondeo)
-          </span>
+        <!-- Botones acción -->
+        <div class="btn-row three">
+          <button type="button" class="btn-back" (click)="onPreviousStep()">
+            <i class="ti ti-arrow-left"></i> Editar
+          </button>
+          <button type="button" class="btn-pdf" (click)="downloadPDF()">
+            <i class="ti ti-file-type-pdf"></i> Descargar PDF
+          </button>
+          <button type="button" class="btn-reset" (click)="resetCalculator()">
+            <i class="ti ti-refresh"></i> Nueva
+          </button>
         </div>
       </div>
 
-      <!-- Estadísticas adicionales -->
-      <div *ngIf="getCalculationStats() as stats" style="background: #f8f9fa; border-radius: 12px; padding: 16px; margin-top: 20px;">
-        <h4 style="margin: 0 0 12px 0; color: #495057;">📈 Estadísticas</h4>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: white; border-radius: 6px; border: 1px solid #dee2e6;">
-            <span style="color: #6c757d; font-size: 14px;">Pisos con ajustes:</span>
-            <span style="font-weight: 600; color: #495057;">{{ stats.floorsWithAdjustments }}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: white; border-radius: 6px; border: 1px solid #dee2e6;">
-            <span style="color: #6c757d; font-size: 14px;">Pisos con reducciones:</span>
-            <span style="font-weight: 600; color: #495057;">{{ stats.floorsWithReductions }}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: white; border-radius: 6px; border: 1px solid #dee2e6;">
-            <span style="color: #6c757d; font-size: 14px;">Pisos que reciben redistribución:</span>
-            <span style="font-weight: 600; color: #495057;">{{ stats.floorsReceivingRedistribution }}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: white; border-radius: 6px; border: 1px solid #dee2e6;">
-            <span style="color: #6c757d; font-size: 14px;">Total redistribuido:</span>
-            <span style="font-weight: 600; color: #495057;">{{ formatCurrency(stats.totalRedistributed) }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Botones de Acción -->
-      <div class="button-group">
-        <button
-          type="button"
-          class="prev-btn"
-          (click)="onPreviousStep()"
-        >
-          <span class="btn-icon">←</span>
-          Editar Datos
-        </button>
-        <button
-          type="button"
-          class="export-btn"
-          (click)="exportResults()"
-        >
-          <span class="btn-icon">📊</span>
-          Exportar
-        </button>
-        <button
-          type="button"
-          class="reset-btn"
-          (click)="resetCalculator()"
-        >
-          <span class="btn-icon">🔄</span>
-          Nueva Calculación
-        </button>
-      </div>
     </div>
   </div>
 </div>

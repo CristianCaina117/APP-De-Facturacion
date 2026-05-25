@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray } from '@angular/forms';
 import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Interfaces corregidas
 export interface FloorDetail {
@@ -523,43 +525,569 @@ export class AguaComponent implements OnInit, OnDestroy {
     return Math.round((this.currentStep / this.maxSteps) * 100);
   }
 
-  exportResults(): void {
-    if (!this.calculation) return;
+  async downloadPDF(): Promise<void> {
+  if (!this.calculation) return;
 
-    try {
-      const exportData = {
-        fecha: new Date().toISOString(),
-        timestamp: Date.now(),
-        calculo: this.calculation,
-        resumen: {
-          totalFactura: this.formatCurrency(this.calculation.totalAmount),
-          totalPersonas: this.calculation.totalPeople,
-          promedioPorPersona: this.formatCurrency(this.calculation.baseAmountPerPerson),
-          totalAjustes: this.formatCurrency(this.calculation.totalAdjustments),
-          totalFinal: this.formatCurrency(this.calculation.finalTotal),
-          redistribucionTotal: this.calculation.redistributionDetails ?
-            this.formatCurrency(this.calculation.redistributionDetails.totalRedistributed) : '$0'
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const fecha = new Date().toLocaleDateString('es-CO', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
+  const mesAnio = new Date().toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+
+  // ─── HELPERS ───────────────────────────────────────────────
+  const gold   = [201, 168, 76]  as [number,number,number];
+  const dark   = [10,  10,  15]  as [number,number,number];
+  const cream  = [245, 240, 232] as [number,number,number];
+  const sand   = [248, 246, 240] as [number,number,number];
+  const muted  = [180, 165, 130] as [number,number,number];
+  const ink    = [40,  32,  12]  as [number,number,number];
+  const subink = [100, 85,  50]  as [number,number,number];
+
+  const drawRect = (x:number,y:number,w:number,h:number,r:number,fill:[number,number,number]) => {
+    doc.setFillColor(...fill); doc.roundedRect(x,y,w,h,r,r,'F');
+  };
+  const hline = (y:number,x1=14,x2=pageW-14,color=gold,lw=0.3) => {
+    doc.setDrawColor(...color); doc.setLineWidth(lw); doc.line(x1,y,x2,y);
+  };
+
+  // ─── PÁGINA 1 ──────────────────────────────────────────────
+
+  // Header oscuro degradado simulado con rects
+  doc.setFillColor(...dark); doc.rect(0,0,pageW,56,'F');
+  doc.setFillColor(20,20,30); doc.rect(0,28,pageW,28,'F');
+
+  // Franja dorada top
+  doc.setFillColor(...gold); doc.rect(0,0,pageW,3,'F');
+
+  // Logo/icono círculo
+  doc.setFillColor(...gold);
+  doc.circle(22, 22, 9, 'F');
+  doc.setFillColor(...dark);
+  doc.circle(22, 22, 7, 'F');
+  doc.setFillColor(...gold);
+  doc.circle(22, 22, 2, 'F');
+
+  // Título principal
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(22);
+  doc.setTextColor(...cream);
+  doc.text('FACTURA DE DISTRIBUCIÓN', 36, 16);
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(...gold);
+  doc.text('SERVICIO DE AGUA — CASA', 36, 23);
+
+  // Número de factura y fecha
+  doc.setFontSize(8);
+  doc.setTextColor(...muted);
+  const folio = `FAC-${Date.now().toString().slice(-6)}`;
+  doc.text(`Folio: ${folio}`, 36, 30);
+  doc.text(`Período: ${mesAnio}`, 36, 35);
+  doc.text(`Emitido: ${fecha}`, 36, 40);
+
+  // Badge estado
+  drawRect(pageW-46, 8, 32, 10, 2, [30,40,20] as [number,number,number]);
+  doc.setFontSize(8); doc.setFont('helvetica','bold');
+  doc.setTextColor(120,200,100);
+  doc.text('✓  LIQUIDADO', pageW-44, 14.5);
+
+  // Subtítulo separador
+  doc.setFillColor(30,28,40);
+  doc.rect(0,45,pageW,11,'F');
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.setTextColor(...muted);
+  doc.text('Distribución proporcional por número de personas residentes por piso', pageW/2, 52, {align:'center'});
+
+  // ─── BLOQUE RESUMEN 4 KPIs ─────────────────────────────────
+  const kpiY = 62;
+  const kpiW = (pageW-28-9)/4;
+  const kpis = [
+    { label:'TOTAL FACTURA',    value: this.formatCurrency(this.calculation.totalAmount),           icon:'$' },
+    { label:'TOTAL PERSONAS',   value: `${this.calculation.totalPeople} pers.`,                     icon:'👤' },
+    { label:'COSTO / PERSONA',  value: this.formatCurrency(this.calculation.baseAmountPerPerson),   icon:'÷' },
+    { label:'PISOS',            value: `${this.calculation.floors.length} pisos`,                   icon:'▣' },
+  ];
+
+  kpis.forEach((k,i) => {
+    const x = 14 + i*(kpiW+3);
+    drawRect(x, kpiY, kpiW, 22, 3, sand);
+    doc.setFillColor(...gold); doc.rect(x,kpiY,kpiW,1.5,'F');
+    doc.setFontSize(7); doc.setFont('helvetica','bold');
+    doc.setTextColor(...subink);
+    doc.text(k.label, x+kpiW/2, kpiY+7, {align:'center'});
+    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.setTextColor(...ink);
+    doc.text(k.value, x+kpiW/2, kpiY+15, {align:'center'});
+  });
+
+  // ─── GRÁFICO DE BARRAS (canvas → base64) ──────────────────
+  const chartImg = await this.generateBarChartImage();
+  const pieImg   = await this.generatePieChartImage();
+
+  const chartY = kpiY + 28;
+  doc.setFontSize(8); doc.setFont('helvetica','bold');
+  doc.setTextColor(...subink);
+  doc.text('DISTRIBUCIÓN POR PISO', 14, chartY);
+  hline(chartY+2);
+
+  // Barras izquierda
+  doc.addImage(chartImg, 'PNG', 14, chartY+4, 110, 52);
+
+  // Pie derecha
+  doc.setFontSize(8); doc.setFont('helvetica','bold');
+  doc.setTextColor(...subink);
+  doc.text('PROPORCIÓN DEL TOTAL', pageW-68, chartY);
+  doc.addImage(pieImg,   'PNG', pageW-68, chartY+4, 54, 52);
+
+  // ─── TABLA DETALLADA ───────────────────────────────────────
+  const tableY = chartY + 62;
+  doc.setFontSize(8); doc.setFont('helvetica','bold');
+  doc.setTextColor(...subink);
+  doc.text('DESGLOSE DETALLADO POR PISO', 14, tableY);
+  hline(tableY+2);
+
+  const tableData = this.calculation.floors.map((floor, idx) => {
+    const pct = ((floor.finalAmount / this.calculation!.totalAmount)*100).toFixed(1);
+    const bar = '█'.repeat(Math.round(parseFloat(pct)/5));
+    return [
+      `${floor.floorNumber}`,
+      `${floor.people}`,
+      this.formatCurrency(floor.baseAmount),
+      floor.adjustment !== 0 ? this.formatCurrency(floor.adjustment) : '—',
+      (floor.redistributedAmount||0) > 0 ? `+${this.formatCurrency(floor.redistributedAmount!)}` : '—',
+      this.formatCurrency(floor.finalAmount),
+      `${pct}%`,
+      floor.adjustmentReason || '—',
+    ];
+  });
+
+  autoTable(doc, {
+    startY: tableY+4,
+    head: [['Piso','Pers.','Base','Ajuste','Redistrib.','TOTAL','%','Motivo']],
+    body: tableData,
+    theme: 'grid',
+    styles: {
+      font:'helvetica', fontSize:8.5, cellPadding:2.8,
+      textColor: ink, lineColor:[220,205,170], lineWidth:0.18,
+    },
+    headStyles: {
+      fillColor: dark, textColor: gold,
+      fontStyle:'bold', fontSize:8, cellPadding:3.5,
+    },
+    alternateRowStyles: { fillColor: [251,249,244] },
+    columnStyles: {
+      0: { halign:'center', fontStyle:'bold', cellWidth:10 },
+      1: { halign:'center', cellWidth:10 },
+      2: { halign:'right',  cellWidth:25 },
+      3: { halign:'right',  cellWidth:22, textColor:[180,80,40] as [number,number,number] },
+      4: { halign:'right',  cellWidth:20, textColor:[60,140,70] as [number,number,number] },
+      5: { halign:'right',  cellWidth:26, fontStyle:'bold', textColor:gold },
+      6: { halign:'center', cellWidth:12 },
+      7: { cellWidth:'auto', fontSize:7.5, textColor:subink },
+    },
+    margin:{ left:14, right:14 },
+    didDrawCell: (data) => {
+      // Resaltar fila de total más alto
+      if (data.section === 'body' && data.column.index === 5) {
+        const max = Math.max(...this.calculation!.floors.map(f=>f.finalAmount));
+        const floor = this.calculation!.floors[data.row.index];
+        if (floor && floor.finalAmount === max) {
+          doc.setFillColor(255,248,220);
+          doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+          doc.setFont('helvetica','bold');
+          doc.setFontSize(8.5);
+          doc.setTextColor(...gold);
+          doc.text(
+            this.formatCurrency(floor.finalAmount),
+            data.cell.x + data.cell.width - 2,
+            data.cell.y + data.cell.height/2 + 1,
+            {align:'right'}
+          );
         }
-      };
-
-      const dataStr = JSON.stringify(exportData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `calculo-agua-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      console.log('Datos exportados:', exportData);
-    } catch (error) {
-      console.error('Error al exportar:', error);
-      alert('Error al exportar los datos. Por favor, intenta nuevamente.');
+      }
     }
+  });
+
+  // ─── TOTALIZADOR FINAL ─────────────────────────────────────
+  const totalY = (doc as any).lastAutoTable.finalY + 6;
+
+  // Fila totales en tabla
+  drawRect(14, totalY, pageW-28, 14, 2, dark);
+  doc.setFillColor(...gold); doc.rect(14, totalY, 4, 14,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.setTextColor(...cream);
+  doc.text('TOTAL DISTRIBUIDO:', 22, totalY+6);
+  doc.setFontSize(13); doc.setTextColor(...gold);
+  doc.text(this.formatCurrency(this.calculation.finalTotal), pageW-16, totalY+7.5, {align:'right'});
+
+  const diff = Math.abs(this.getTotalDifference());
+  doc.setFontSize(7.5); doc.setFont('helvetica','normal');
+  doc.setTextColor(diff<=0.01 ? 80:200, diff<=0.01?160:80, diff<=0.01?90:30);
+  doc.text(
+    diff<=0.01
+      ? `✓ Balance perfecto — suma idéntica al total de la factura (${this.formatCurrency(this.calculation.totalAmount)})`
+      : `⚠ Diferencia por redondeo: ${this.formatCurrency(diff)}`,
+    22, totalY+11.5
+  );
+
+  // ─── SECCIÓN REDISTRIBUCIÓN (si aplica) ────────────────────
+  if ((this.calculation.redistributionDetails?.totalRedistributed||0) > 0) {
+    const redY = totalY + 20;
+    drawRect(14, redY, pageW-28, 18, 2, [240,248,235] as [number,number,number]);
+    doc.setFillColor(80,160,90); doc.rect(14, redY, 3, 18,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.setTextColor(40,100,50);
+    doc.text('REDISTRIBUCIÓN AUTOMÁTICA', 21, redY+6);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    doc.setTextColor(60,80,55);
+    const rd = this.calculation.redistributionDetails!;
+    doc.text(
+      `${rd.floorsWithReductions} piso(s) con reducción aportaron `+
+      `${this.formatCurrency(rd.totalRedistributed)} que se redistribuyeron entre `+
+      `${rd.floorsReceivingRedistribution} piso(s) — `+
+      `${this.formatCurrency(rd.redistributionPerFloor)} por piso.`,
+      21, redY+12, { maxWidth: pageW-40 }
+    );
   }
+
+  // ─── PÁGINA 2: análisis y notas ────────────────────────────
+  doc.addPage();
+  doc.setFillColor(...dark); doc.rect(0,0,pageW,18,'F');
+  doc.setFillColor(...gold); doc.rect(0,0,pageW,2,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.setTextColor(...cream);
+  doc.text('ANÁLISIS Y TRANSPARENCIA', pageW/2, 12, {align:'center'});
+
+  // Tabla comparativa piso vs promedio
+  const avgFinal = this.calculation.finalTotal / this.calculation.floors.length;
+  const compData = this.calculation.floors.map(floor => {
+    const diff2 = floor.finalAmount - avgFinal;
+    const status = Math.abs(diff2) < 1000 ? 'Equitativo'
+                  : diff2 > 0 ? 'Por encima del prom.' : 'Por debajo del prom.';
+    return [
+      `Piso ${floor.floorNumber}`,
+      `${floor.people}`,
+      this.formatCurrency(floor.finalAmount),
+      this.formatCurrency(avgFinal),
+      (diff2>=0?'+':'')+this.formatCurrency(diff2),
+      `${((floor.finalAmount/this.calculation!.totalAmount)*100).toFixed(2)}%`,
+      status,
+    ];
+  });
+
+  doc.setFontSize(8); doc.setFont('helvetica','bold');
+  doc.setTextColor(...subink);
+  doc.text('COMPARATIVA PISO VS PROMEDIO', 14, 26);
+  hline(28);
+
+  autoTable(doc,{
+    startY: 30,
+    head:[['Piso','Pers.','Su cuota','Promedio','Diferencia','% Total','Estado']],
+    body: compData,
+    theme:'grid',
+    styles:{ font:'helvetica', fontSize:8.5, cellPadding:3, textColor:ink, lineColor:[220,205,170], lineWidth:0.18 },
+    headStyles:{ fillColor:dark, textColor:gold, fontStyle:'bold', fontSize:8, cellPadding:3.5 },
+    alternateRowStyles:{ fillColor:[251,249,244] },
+    columnStyles:{
+      0:{ fontStyle:'bold', cellWidth:20 },
+      1:{ halign:'center', cellWidth:14 },
+      2:{ halign:'right',  cellWidth:30, fontStyle:'bold', textColor:gold },
+      3:{ halign:'right',  cellWidth:30 },
+      4:{ halign:'right',  cellWidth:28 },
+      5:{ halign:'center', cellWidth:18 },
+      6:{ cellWidth:'auto' },
+    },
+    margin:{left:14,right:14},
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.column.index === 4) {
+
+        const val = String(data.cell.raw || '');
+
+        const isPos = val.startsWith('+');
+        const isNeg = val.startsWith('-') && !val.startsWith('-$0');
+
+        if (isPos) {
+          data.cell.styles.textColor = [180, 80, 40];
+        }
+        else if (isNeg) {
+          data.cell.styles.textColor = [60, 140, 70];
+        }
+        else {
+          data.cell.styles.textColor = ink;
+        }
+
+        data.cell.styles.fontStyle = 'bold';
+      }
+    }
+  });
+
+  // Gráfico horizontal de barras comparativo
+  const hbarImg = await this.generateHBarChartImage();
+  const hbarY = (doc as any).lastAutoTable.finalY + 8;
+  doc.setFontSize(8); doc.setFont('helvetica','bold');
+  doc.setTextColor(...subink);
+  doc.text('VISUALIZACIÓN COMPARATIVA DE CUOTAS', 14, hbarY);
+  hline(hbarY+2);
+  doc.addImage(hbarImg,'PNG',14,hbarY+4,pageW-28,60);
+
+  // ─── NOTA LEGAL / PIE ─────────────────────────────────────
+  const noteY = hbarY + 70;
+  drawRect(14, noteY, pageW-28, 30, 2, [248,246,240] as [number,number,number]);
+  doc.setFillColor(...muted); doc.rect(14,noteY,3,30,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+  doc.setTextColor(...subink);
+  doc.text('METODOLOGÍA DE CÁLCULO', 21, noteY+6);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+  doc.setTextColor(80,70,50);
+  const nota = [
+    '1. Se calcula el monto base por persona dividiendo el total de la factura entre el número total de residentes.',
+    '2. Cada piso paga proporcionalmente según sus residentes: Base Piso = (Personas Piso ÷ Total Personas) × Total Factura.',
+    '3. Los ajustes manuales (+ o -) modifican la cuota individual del piso afectado.',
+    '4. Si un ajuste es negativo, el monto reducido se redistribuye equitativamente entre los demás pisos.',
+    '5. La suma de todas las cuotas finales es siempre igual al total original de la factura.',
+  ];
+  nota.forEach((line,i)=>{ doc.text(line, 21, noteY+12+(i*4.2), {maxWidth:pageW-44}); });
+
+  // Footer todas las páginas
+  const totalPages = doc.getNumberOfPages();
+  for(let p=1; p<=totalPages; p++){
+    doc.setPage(p);
+    const fy = pageH-8;
+    doc.setFillColor(...dark); doc.rect(0,fy-5,pageW,13,'F');
+    doc.setFillColor(...gold); doc.rect(0,fy-5,pageW,0.5,'F');
+    doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.setTextColor(...subink);
+    doc.text(`Calculadora de Servicios por Piso  •  Folio ${folio}  •  ${fecha}`, pageW/2, fy, {align:'center'});
+    doc.text(`Página ${p} de ${totalPages}`, pageW-15, fy, {align:'right'});
+  }
+
+  doc.save(`factura-agua-${new Date().toISOString().split('T')[0]}.pdf`);
+    }
+
+    // ─── GENERADORES DE GRÁFICOS ───────────────────────────────────
+    private generateBarChartImage(): Promise<string> {
+      return new Promise(resolve => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 700; canvas.height = 340;
+        const ctx = canvas.getContext('2d')!;
+
+        const floors = this.calculation!.floors;
+        const labels = floors.map(f=>`Piso ${f.floorNumber}`);
+        const values = floors.map(f=>f.finalAmount);
+        const maxVal = Math.max(...values);
+
+        // Fondo
+        ctx.fillStyle = '#faf8f2';
+        ctx.fillRect(0,0,700,340);
+
+        const padL=60, padR=20, padT=30, padB=50;
+        const chartW = 700-padL-padR;
+        const chartH = 340-padT-padB;
+        const barW = Math.min(chartW/floors.length*0.6, 60);
+        const gap  = chartW/floors.length;
+
+        // Grid lines
+        for(let i=0;i<=5;i++){
+          const y = padT + chartH - (i/5)*chartH;
+          ctx.strokeStyle = '#e8e0cc';
+          ctx.lineWidth = 0.5;
+          ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(padL+chartW,y); ctx.stroke();
+          ctx.fillStyle='#8a7848'; ctx.font='11px Arial';
+          ctx.textAlign='right';
+          const label = this.formatCurrency(maxVal*(i/5));
+          ctx.fillText(label, padL-6, y+4);
+        }
+
+        // Barras
+        floors.forEach((floor,i)=>{
+          const x = padL + i*gap + gap/2 - barW/2;
+          const barH = (floor.finalAmount/maxVal)*chartH;
+          const y = padT + chartH - barH;
+
+          // Sombra
+          ctx.fillStyle='rgba(0,0,0,0.06)';
+          ctx.fillRect(x+3,y+3,barW,barH);
+
+          // Gradiente dorado
+          const grad = ctx.createLinearGradient(x,y,x,y+barH);
+          grad.addColorStop(0,'#e8d5a3');
+          grad.addColorStop(1,'#c9a84c');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.roundRect(x,y,barW,barH,4);
+          ctx.fill();
+
+          // Línea top dorada oscura
+          ctx.fillStyle='#a07830';
+          ctx.fillRect(x,y,barW,3);
+
+          // Valor encima
+          ctx.fillStyle='#3a2a08';
+          ctx.font='bold 11px Arial';
+          ctx.textAlign='center';
+          ctx.fillText(this.formatCurrency(floor.finalAmount), x+barW/2, y-6);
+
+          // Label eje X
+          ctx.fillStyle='#6a5828';
+          ctx.font='12px Arial';
+          ctx.fillText(labels[i], x+barW/2, padT+chartH+18);
+
+          // Personas
+          ctx.fillStyle='#9a8848';
+          ctx.font='10px Arial';
+          ctx.fillText(`${floor.people} pers.`, x+barW/2, padT+chartH+32);
+        });
+
+        // Eje Y
+        ctx.strokeStyle='#c9a84c'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(padL,padT); ctx.lineTo(padL,padT+chartH); ctx.stroke();
+
+        // Título
+        ctx.fillStyle='#3a2a08'; ctx.font='bold 13px Arial'; ctx.textAlign='center';
+        ctx.fillText('Cuota por piso (COP)', 350, 18);
+
+        resolve(canvas.toDataURL('image/png'));
+      });
+    }
+
+    private generatePieChartImage(): Promise<string> {
+      return new Promise(resolve => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 340; canvas.height = 340;
+        const ctx = canvas.getContext('2d')!;
+
+        ctx.fillStyle='#faf8f2'; ctx.fillRect(0,0,340,340);
+
+        const floors = this.calculation!.floors;
+        const values = floors.map(f=>f.finalAmount);
+        const total  = values.reduce((a,b)=>a+b,0);
+        const colors = ['#c9a84c','#e8d5a3','#a07830','#d4b870','#8a6020','#f0e0b0','#b89040','#785018'];
+
+        let startAngle = -Math.PI/2;
+        const cx=170, cy=160, r=110;
+
+        values.forEach((val,i)=>{
+          const slice = (val/total)*Math.PI*2;
+          // Sombra
+          ctx.save();
+          ctx.shadowColor='rgba(0,0,0,0.15)'; ctx.shadowBlur=6;
+          ctx.fillStyle = colors[i%colors.length];
+          ctx.beginPath();
+          ctx.moveTo(cx,cy);
+          ctx.arc(cx,cy,r,startAngle,startAngle+slice);
+          ctx.closePath(); ctx.fill();
+          ctx.restore();
+
+          // Borde
+          ctx.strokeStyle='#faf8f2'; ctx.lineWidth=2;
+          ctx.beginPath();
+          ctx.moveTo(cx,cy);
+          ctx.arc(cx,cy,r,startAngle,startAngle+slice);
+          ctx.closePath(); ctx.stroke();
+
+          // Porcentaje
+          const midAngle = startAngle + slice/2;
+          const lx = cx + Math.cos(midAngle)*(r*0.65);
+          const ly = cy + Math.sin(midAngle)*(r*0.65);
+          const pct = ((val/total)*100).toFixed(0);
+          if(parseFloat(pct)>4){
+            ctx.fillStyle='#3a2a08'; ctx.font='bold 11px Arial'; ctx.textAlign='center';
+            ctx.fillText(`${pct}%`, lx, ly+4);
+          }
+
+          startAngle += slice;
+        });
+
+        // Círculo central
+        ctx.fillStyle='#faf8f2';
+        ctx.beginPath(); ctx.arc(cx,cy,r*0.38,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#8a6828'; ctx.font='bold 12px Arial'; ctx.textAlign='center';
+        ctx.fillText('TOTAL', cx, cy-5);
+        ctx.fillStyle='#3a2a08'; ctx.font='bold 11px Arial';
+        ctx.fillText(this.formatCurrency(total), cx, cy+10);
+
+        // Leyenda
+        floors.forEach((f,i)=>{
+          const ly = 300 + Math.floor(i/4)*14;
+          const lx = 10 + (i%4)*82;
+          ctx.fillStyle=colors[i%colors.length];
+          ctx.fillRect(lx,ly-9,10,10);
+          ctx.fillStyle='#6a5828'; ctx.font='9px Arial'; ctx.textAlign='left';
+          ctx.fillText(`P${f.floorNumber}: ${((f.finalAmount/total)*100).toFixed(1)}%`, lx+13, ly);
+        });
+
+        resolve(canvas.toDataURL('image/png'));
+      });
+    }
+
+    private generateHBarChartImage(): Promise<string> {
+      return new Promise(resolve => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1140; canvas.height = 380;
+        const ctx = canvas.getContext('2d')!;
+
+        ctx.fillStyle='#faf8f2'; ctx.fillRect(0,0,1140,380);
+
+        const floors = this.calculation!.floors;
+        const maxVal = Math.max(...floors.map(f=>f.finalAmount));
+        const avg    = this.calculation!.finalTotal / floors.length;
+        const padL=130, padR=160, padT=30, padB=30;
+        const chartW = 1140-padL-padR;
+        const rowH   = (380-padT-padB)/floors.length;
+
+        // Línea promedio
+        const avgX = padL + (avg/maxVal)*chartW;
+        ctx.strokeStyle='#c9a84c'; ctx.lineWidth=1.5;
+        ctx.setLineDash([5,4]);
+        ctx.beginPath(); ctx.moveTo(avgX,padT); ctx.lineTo(avgX,padT+(rowH*floors.length)); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle='#a07830'; ctx.font='bold 11px Arial'; ctx.textAlign='center';
+        ctx.fillText('Promedio', avgX, padT-6);
+
+        floors.forEach((floor,i)=>{
+          const y = padT + i*rowH + rowH*0.2;
+          const bH = rowH*0.55;
+          const bW = (floor.finalAmount/maxVal)*chartW;
+
+          // Label piso
+          ctx.fillStyle='#3a2a08'; ctx.font='bold 12px Arial'; ctx.textAlign='right';
+          ctx.fillText(`Piso ${floor.floorNumber}`, padL-8, y+bH/2+4);
+          ctx.fillStyle='#9a8848'; ctx.font='10px Arial';
+          ctx.fillText(`${floor.people} pers.`, padL-8, y+bH/2+15);
+
+          // Barra fondo
+          ctx.fillStyle='#f0ece0';
+          ctx.beginPath(); (ctx as any).roundRect(padL,y,chartW,bH,3); ctx.fill();
+
+          // Barra valor
+          const grad = ctx.createLinearGradient(padL,0,padL+bW,0);
+          grad.addColorStop(0,'#c9a84c'); grad.addColorStop(1,'#e8d5a3');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); (ctx as any).roundRect(padL,y,bW,bH,3); ctx.fill();
+
+          // Valor al final de barra
+          ctx.fillStyle='#3a2a08'; ctx.font='bold 12px Arial'; ctx.textAlign='left';
+          ctx.fillText(this.formatCurrency(floor.finalAmount), padL+bW+8, y+bH/2+4);
+
+          // Porcentaje
+          ctx.fillStyle='#8a6828'; ctx.font='10px Arial';
+          ctx.fillText(`${((floor.finalAmount/this.calculation!.totalAmount)*100).toFixed(1)}%`, padL+bW+8, y+bH/2+15);
+        });
+
+        // Eje X
+        ctx.strokeStyle='#c9a84c'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(padL,padT); ctx.lineTo(padL,padT+rowH*floors.length); ctx.stroke();
+
+        // Título
+        ctx.fillStyle='#3a2a08'; ctx.font='bold 13px Arial'; ctx.textAlign='center';
+        ctx.fillText('Comparativa de cuotas por piso', 570, 18);
+
+        resolve(canvas.toDataURL('image/png'));
+      });
+    }
 
   onFieldChange(fieldName: string, floorIndex?: number): void {
     setTimeout(() => {
@@ -597,7 +1125,7 @@ export class AguaComponent implements OnInit, OnDestroy {
     if (fieldName === 'numberOfFloors') {
       const floors = this.aguaForm.get('numberOfFloors')?.value;
       if (floors && floors > 10) {
-        console.log('Edificio grande detectado, considera revisar la distribución');
+        console.log('CASA grande detectado, considera revisar la distribución');
       }
     }
 

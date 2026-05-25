@@ -48,7 +48,7 @@
                   "maximumError": "30kb"
                 }
               ],
-              "baseHref": "/APP-De-Facturacion/"
+              "baseHref": "/"
             },
             "development": {
               "optimization": false,
